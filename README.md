@@ -1,6 +1,8 @@
 # MOSS-BBox-Editor
 > **Bounding-Box Prompting Studio**
 
+Try it out: https://runningoverglowies.github.io/MOSS-BBox-Editor/moss-bbox-editor.html
+
 A single-file .html canvas tool for editing and reverse-engineering **MOSS-Image** bounding-box prompts. Drag-in images generated with ComfyUI into the browser window, json prompt is extracted and image shows directly on the canvas.
 No dependencies, browser saves prefs. 
 
