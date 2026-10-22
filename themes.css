@@ -1,0 +1,35 @@
+/* Theme palettes. Default is "dark"; <html data-theme="..."> switches. Other themes override only what differs. */
+:root, [data-theme="dark"] {
+  --bg-main: #09090b; --bg-panel: #111113; --bg-card: #18181b; --bg-card-hover: #222226; --bg-input: #0c0c0e;
+  --border: #27272a; --border-focus: #52525b; --text-main: #f4f4f5; --text-muted: #8b8b93;
+  --canvas-bg: #151518; --canvas-dot: #222227;
+  --summary-bg: #141416; --summary-border: #3f3f46; --summary-title: #d4d4d8;
+  --color-char: #ec4899; --color-obj: #38bdf8; --color-txt: #10b981; --color-hidden: #64748b; --color-locked: #f59e0b;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+[data-theme="light"] {
+  --bg-main: #e8ecf2; --bg-panel: #ffffff; --bg-card: #f8fafc; --bg-card-hover: #edf2f7; --bg-input: #ffffff;
+  --border: #cbd5e1; --border-focus: #0284c7; --text-main: #0f172a; --text-muted: #64748b;
+  --canvas-bg: #ffffff; --canvas-dot: #cbd5e1; --summary-bg: #f0f7ff; --summary-border: #3b82f6; --summary-title: #1d4ed8;
+}
+[data-theme="midnight"] {
+  --bg-main: #06080e; --bg-panel: #0d121c; --bg-card: #141b2b; --bg-card-hover: #1c253b; --bg-input: #090d15;
+  --border: #1e293b; --border-focus: #38bdf8; --text-main: #f1f5f9; --text-muted: #94a3b8;
+  --canvas-bg: #121927; --canvas-dot: #1b263b; --summary-bg: #111a2e; --summary-border: #2563eb; --summary-title: #93c5fd;
+}
+[data-theme="nord"] {
+  --bg-main: #1f232a; --bg-panel: #262c36; --bg-card: #2e3440; --bg-card-hover: #3b4252; --bg-input: #1a1e24;
+  --border: #434c5e; --border-focus: #88c0d0; --text-main: #eceff4; --text-muted: #9aa5b8;
+  --canvas-bg: #2d333f; --canvas-dot: #3b4252; --summary-bg: #252b36; --summary-border: #5e81ac; --summary-title: #88c0d0;
+}
+[data-theme="dracula"] {
+  --bg-main: #171720; --bg-panel: #21222c; --bg-card: #282a36; --bg-card-hover: #343746; --bg-input: #191a23;
+  --border: #44475a; --border-focus: #bd93f9; --text-main: #f8f8f2; --text-muted: #8be9fd;
+  --canvas-bg: #242633; --canvas-dot: #383a4c; --summary-bg: #242133; --summary-border: #bd93f9; --summary-title: #f1fa8c;
+}
+[data-theme="warm"] {
+  --bg-main: #141210; --bg-panel: #1e1b18; --bg-card: #282522; --bg-card-hover: #34302c; --bg-input: #161412;
+  --border: #3d3834; --border-focus: #f97316; --text-main: #fafaf9; --text-muted: #a8a29e;
+  --canvas-bg: #211e1b; --canvas-dot: #35302b; --summary-bg: #231f1c; --summary-border: #ea580c; --summary-title: #fdba74;
+}

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOSS-BBox-Editor</title>
+  <link rel="stylesheet" href="themes.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Palette color picker dialog -->
+  <div id="palette-color-dialog" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) closeColorPickerDialog()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">🎨 Add Color to Palette</span>
+        <button class="action-btn" onclick="closeColorPickerDialog()" style="font-size:1rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <input type="color" id="palette-native-color" value="#FFE135" class="palette-picker-native" oninput="handleNativeColorPick(this.value)">
+          <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+            <label>Selected Hex</label>
+            <input type="text" id="palette-hex-code" value="#FFE135" class="res-input" style="width:100%; text-align:left; font-size:0.8rem;" oninput="handleManualHexInput(this.value)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descriptor + Hex String</label>
+          <input type="text" id="palette-formatted-string" value="Rubber Yellow #FFE135" placeholder="e.g. high-visibility rubber yellow #FFE135" onkeydown="if(event.key==='Enter') commitColorPicker()">
+          <span style="font-size:0.65rem; color:var(--text-muted); line-height:1.2; margin-top:2px;">Auto-names nearest color. Edit the mood/descriptor as desired (schema format: &lt;mood&gt; #HEX).</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeColorPickerDialog()">Cancel</button>
+        <button class="btn" style="background:#10b981; border-color:#059669; color:#fff;" onclick="commitColorPicker()">+ Add to Palette</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-page drag & drop overlay -->
+  <div id="drop-overlay">
+    <div style="font-size:3.2rem;">📥</div>
+    <div style="font-size:1.15rem; font-weight:700; color:var(--border-focus);">Drop Image, JSON, or TXT File</div>
+    <div style="font-size:0.8rem; color:var(--text-muted);">Extracts embedded ComfyUI prompt schema &amp; sets image backdrop</div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <header>
+    <div class="brand">
+      <h1>MOSS-BBox-Editor</h1>
+      <div class="theme-dropdown-wrap" id="theme-dropdown-wrap">
+        <button class="btn" onclick="toggleThemeMenu(event)">⚙</button>
+        <div id="theme-menu" class="theme-dropdown">
+          <div class="theme-menu-header">Color Palette</div>
+          <div id="theme-options"></div><!-- filled by buildStaticUi() -->
+          <div class="theme-divider"></div>
+          <button class="theme-option theme-reset" onclick="resetAllPreferences()"><span>⚠️ Reset All Preferences</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-group">
+      <span class="toolbar-label">Res</span>
+      <select id="res-presets" onchange="applyPresetRes(this.value)" style="padding:2px 4px; font-size:0.75rem;"></select><!-- filled by buildStaticUi() -->
+      <input type="number" id="canvas-w" class="res-input" step="16" min="256" onchange="updateResolutionManual()">
+      <span style="color:var(--text-muted); font-size:0.75rem;">×</span>
+      <input type="number" id="canvas-h" class="res-input" step="16" min="256" onchange="updateResolutionManual()">
+    </div>
+
+    <div class="toolbar-group">
+      <button class="btn btn-icon" onclick="zoomStep(1.2)">＋</button>
+      <button class="btn btn-icon" onclick="zoomStep(0.8)">－</button>
+      <button class="btn" onclick="fitToViewport()">Fit</button>
+      <button class="btn" onclick="resetZoom()">100%</button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="btn btn-icon" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()">↶</button>
+      <button class="btn btn-icon" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()">↷</button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="btn" title="Clear Canvas and Schema to Default" onclick="clearCanvasAndWorkflow()" style="color:#f87171;">🗑️ Clear</button>
+      <button class="btn" title="Save Layout JSON" onclick="saveToFile()">💾 Save</button>
+      <button class="btn" title="Load Image (ComfyUI workflow / backdrop), JSON, or TXT" onclick="$('file-loader').click()">📂 Load</button>
+      <input type="file" id="file-loader" accept="image/*,.json,.txt" style="display:none;" onchange="loadFromFile(event)">
+      <button class="btn" style="background:#10b981; border-color:#059669; color:#fff;" onclick="copyFinalJson()">📋 Copy Final JSON</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <main class="viewport" id="viewport">
+      <div class="canvas-container" id="container">
+        <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </main>
+
+    <aside class="sidebar">
+      <nav class="sidebar-tabs">
+        <button class="tab-btn active" onclick="switchTab('items')">Scene &amp; Elements (<span id="active-count">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('json')">Live JSON Editor</button>
+      </nav>
+
+      <div id="tab-items" class="tab-content">
+        <div id="backdrop-sidebar-card" class="card backdrop-card" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.75rem; font-weight:700; color:var(--border-focus); font-family:var(--font-mono);">🖼️ BACKDROP</span>
+            <button class="action-btn" title="Remove Backdrop Image" onclick="removeBackdropImage()" style="color:#f87171; font-size:0.75rem; padding:2px 6px;">✕ Remove</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+            <span class="toolbar-label" style="font-size:0.65rem;">Opacity</span>
+            <input type="range" id="bg-opacity" min="0" max="1" step="0.05" value="0.85" style="flex:1; height:4px; accent-color:var(--border-focus); cursor:pointer;" oninput="updateBackdropOpacity(this.value)">
+            <span id="bg-opacity-val" style="font-size:0.7rem; font-family:var(--font-mono); width:32px; text-align:right; color:var(--border-focus);">85%</span>
+          </div>
+        </div>
+
+        <div class="card summary-card">
+          <div class="summary-header" onclick="toggleSummaryCollapse()">
+            <span class="summary-title">🎬 Scene Summary &amp; Global Prompt</span>
+            <span id="summary-collapse-icon" style="font-size:0.75rem; color:var(--summary-title);">▲</span>
+          </div>
+          <div id="summary-body" class="form-body">
+            <div class="form-group">
+              <label>summary.canvas (Layout Mode)</label>
+              <select id="sum-canvas" onchange="updateSummaryField('canvas', this.value)" style="border-color:var(--summary-border); font-weight:600;">
+                <option value="single">single (Default Canvas)</option>
+                <option value="multi_panel">multi_panel (Multi-Panel Layout)</option>
+                <option value="collage">collage (Asymmetrical Collage)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>summary.caption (Comprehensive Global Description)</label>
+              <textarea id="sum-caption" rows="3" placeholder="Full scene atmosphere, camera, lighting..." oninput="updateSummaryField('caption', this.value)"></textarea>
+            </div>
+            <div class="form-group">
+              <div class="field-header"><label>summary.meta (Style / Genre)</label><span class="tag-edit-cue" onclick="toggleFullListEdit('summary.meta')">✏️ Edit Text</span></div>
+              <div id="tag-wrap-summary-meta"></div>
+            </div>
+            <div class="form-group">
+              <div class="field-header"><label>summary.palette (Color Swatches)</label><span class="tag-edit-cue" onclick="toggleFullListEdit('summary.palette')">✏️ Edit Text</span></div>
+              <div id="tag-wrap-summary-palette"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+          <span class="toolbar-label">Bounding Box Elements (Drag ⠿ to Reorder)</span>
+          <button class="btn btn-icon" style="font-size:0.7rem; padding:2px 6px;" onclick="addNewItem()">＋ Add Box</button>
+        </div>
+        <div id="items-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <div id="tab-json" class="tab-content" style="display:none;">
+        <div id="json-status" class="json-status valid">● Valid Schema JSON — Real-Time Synced</div>
+        <textarea id="json-input" spellcheck="false" oninput="handleLiveJsonInput(this.value)"></textarea>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Classic scripts share one global scope; load order matters only for top-level constants. -->
+  <script src="state.js"></script>
+  <script src="tags.js"></script>
+  <script src="viewport.js"></script>
+  <script src="render.js"></script>
+  <script src="interact.js"></script>
+  <script src="importer.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
